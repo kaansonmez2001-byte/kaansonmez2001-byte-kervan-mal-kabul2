@@ -1,10 +1,1 @@
-{
-  "name":"Kervan Mal Kabul",
-  "short_name":"Kervan Mal Kabul",
-  "start_url":"./",
-  "display":"standalone",
-  "background_color":"#f4f6f8",
-  "theme_color":"#0f2747",
-  "description":"Kervan Market mal kabul ve barkod uygulaması",
-  "icons":[]
-}
+{"name":"Kervan Market Mal Kabul","short_name":"Kervan Mal Kabul","start_url":"/","display":"standalone","background_color":"#f4f6f8","theme_color":"#13263f","description":"Kervan Market barkodlu mal kabul ve fatura kabul sistemi","icons":[]}

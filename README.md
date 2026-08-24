@@ -1,37 +1,56 @@
-# Kervan Mal Kabul Web / PWA
+# Kervan Market Mal Kabul — Web/PWA
 
-İlk MVP: build gerektirmeyen statik PWA. Vercel, Netlify veya herhangi bir HTTPS web sunucusuna doğrudan yüklenebilir.
+Tam saha kullanımı için web tabanlı mal kabul sistemi. Masaüstünde yönetim paneli, telefonda responsive saha ekranı olarak çalışır.
 
-## Çalışan özellikler
-- Ana ekran
-- IndexedDB yerel ürün ve mal kabul veritabanı
-- AKINSOFT CSV/XLSX içe aktarma
-- Barkoddan ürün bulma
-- Android Chrome BarcodeDetector kamera desteği + manuel barkod yedeği
-- ADET / KOLİ / KUTU dönüşümü
-- Birim bilgisi eksik üründe koli/kutu içi tanımlama
-- Tanımsız barkodu yeni ürün olarak ekleme
-- Aynı ürün tekrar okutulunca satır birleştirme
-- Taslak mal kabulü cihazda anlık saklama
-- Mal kabul tamamlama ve geçmiş
-- PWA/service worker ile temel offline çalışma
+## Hazır modüller
+- Yönetici / personel PIN girişi (ilk kullanıcı: admin / 1234)
+- Responsive sol menülü yönetim paneli
+- AKINSOFT Excel / CSV ürün yükleme ve ürün arama
+- Barkod kamera okutma (EAN/UPC/Code türleri html5-qrcode desteği kapsamında) + manuel barkod
+- ADET / KOLI / KUTU çevrim hesabı
+- Birimi eksik ürünü ilk okumada tanımlama ve kalıcı saklama
+- Barkodu bilinmeyen ürünü sonradan ekleme + ayrı rapor
+- Aynı barkodu aynı birim/çevrimle tekrar okutunca satır birleştirme
+- Taslak mal kabul, tamamlanmış mal kabul, geçmiş ve detay
+- Yönetici tarafından tamamlanmış satır miktarı değiştirme/silme + audit log
+- Tedarikçi yönetimi
+- Personel/kullanıcı yönetimi ve rol bazlı menü
+- Rapor ekranı
+- Excel dışa aktarma
+- IndexedDB ile offline veri saklama
+- PWA service worker
+- Supabase push senkronizasyonu
+- Vercel static deployment ayarı
 
-## Lokal çalıştırma
-Service Worker ve kamera için dosyayı çift tıklamak yerine localhost kullanın:
+## Çalıştırma
+Dosyaları doğrudan çift tıklamak yerine HTTPS veya localhost üzerinden açın:
 
 ```bash
 python -m http.server 8080
 ```
 
-Sonra http://localhost:8080 açın.
+http://localhost:8080
 
-## Deploy
-Bu klasörü Vercel'e statik proje olarak yükleyin. Kamera üretimde HTTPS ister.
+Kamera localhost'ta veya HTTPS üzerinde çalışır.
 
-## Sonraki faz
-- Supabase Auth ve merkezi senkronizasyon
-- Yönetici/personel rolleri
-- Raporlar ve Excel dışa aktarma
-- Audit log
-- Tedarikçi yönetimi
-- Çakışma/senkronizasyon kuyruğu
+## İlk giriş
+- Kullanıcı: `admin`
+- PIN: `1234`
+
+## Supabase
+1. Yeni bir Supabase projesi oluşturun.
+2. SQL Editor içinde `supabase/schema.sql` dosyasını çalıştırın.
+3. Authentication bölümünden bir e-posta/şifre kullanıcısı oluşturun.
+4. Uygulama > Ayarlar ekranında Project URL, Publishable/Anon Key, e-posta ve şifreyi girin.
+5. `Şimdi Senkronize Et` butonuna basın.
+
+Tarayıcıya **service_role / secret key koymayın**. Yalnızca publishable/anon key kullanılmalıdır.
+
+## Vercel
+Bu klasör static olarak deploy edilebilir. Kamera için production adresi HTTPS olmalıdır.
+
+## Offline davranışı
+Uygulama verileri IndexedDB'de tutulur. İnternet yokken mal kabul yapılabilir. Bulut ayarı yapılmışsa internet geri geldiğinde senkronizasyon denenir.
+
+## APK'ya geçiş
+Bu PWA daha sonra Capacitor ile Android APK kabuğuna alınabilir. Veri modeli ve iş akışları aynı kalır.

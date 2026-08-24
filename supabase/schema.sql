@@ -1,49 +1,13 @@
--- Kervan Mal Kabul - merkezi senkronizasyon için Faz 2 şeması
-create table if not exists public.products (
-  id uuid primary key default gen_random_uuid(),
-  barcode text not null unique,
-  product_code text,
-  product_name text not null,
-  unit text check (unit in ('ADET','KOLI','KUTU')),
-  case_qty numeric,
-  box_qty numeric,
-  purchase_price numeric,
-  manually_added boolean not null default false,
-  manually_defined_unit boolean not null default false,
-  note text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create index if not exists products_barcode_idx on public.products(barcode);
-
-create table if not exists public.receipts (
-  id uuid primary key default gen_random_uuid(),
-  supplier text,
-  invoice_no text,
-  receipt_date date not null default current_date,
-  employee text,
-  description text,
-  status text not null default 'DRAFT' check(status in ('DRAFT','COMPLETED')),
-  created_at timestamptz not null default now(),
-  completed_at timestamptz,
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists public.receipt_lines (
-  id uuid primary key default gen_random_uuid(),
-  receipt_id uuid not null references public.receipts(id) on delete cascade,
-  barcode text not null,
-  product_code text,
-  product_name text not null,
-  quantity numeric not null,
-  unit text not null check(unit in ('ADET','KOLI','KUTU')),
-  conversion numeric not null default 1,
-  total_units numeric not null,
-  purchase_price numeric,
-  created_at timestamptz not null default now()
-);
-
-alter table public.products enable row level security;
-alter table public.receipts enable row level security;
-alter table public.receipt_lines enable row level security;
--- RLS politikaları Auth modeli netleştikten sonra eklenecek. Service role tarayıcıya konulmayacak.
+create extension if not exists pgcrypto;
+create table if not exists public.products (id uuid primary key default gen_random_uuid(),local_id text not null unique,barcode text not null,product_code text,product_name text not null,unit text,case_quantity numeric,box_quantity numeric,purchase_price numeric,manually_added boolean not null default false,manually_defined_unit boolean not null default false,notes text,updated_at timestamptz not null default now());
+create table if not exists public.suppliers (id uuid primary key default gen_random_uuid(),local_id text not null unique,name text not null,phone text,tax_number text,notes text,updated_at timestamptz not null default now());
+create table if not exists public.receipts (id uuid primary key default gen_random_uuid(),local_id text not null unique,supplier_name text,invoice_number text,receipt_date date not null,employee_name text,description text,status text not null check(status in('DRAFT','COMPLETED')),total_lines numeric not null default 0,total_units numeric not null default 0,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
+create table if not exists public.receipt_lines (id uuid primary key default gen_random_uuid(),local_id text not null unique,receipt_local_id text not null,barcode text not null,product_code text,product_name text not null,entered_quantity numeric not null,entered_unit text not null,conversion_quantity numeric not null,total_units numeric not null,purchase_price numeric,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
+create table if not exists public.audit_logs (id uuid primary key default gen_random_uuid(),local_id text not null unique,user_name text,action text,entity_type text,entity_local_id text,description text,old_value text,new_value text,created_at timestamptz not null default now());
+alter table public.products enable row level security;alter table public.suppliers enable row level security;alter table public.receipts enable row level security;alter table public.receipt_lines enable row level security;alter table public.audit_logs enable row level security;
+create policy "authenticated products" on public.products for all to authenticated using (true) with check (true);
+create policy "authenticated suppliers" on public.suppliers for all to authenticated using (true) with check (true);
+create policy "authenticated receipts" on public.receipts for all to authenticated using (true) with check (true);
+create policy "authenticated receipt_lines" on public.receipt_lines for all to authenticated using (true) with check (true);
+create policy "authenticated audit_logs" on public.audit_logs for all to authenticated using (true) with check (true);
+grant select,insert,update,delete on public.products,public.suppliers,public.receipts,public.receipt_lines,public.audit_logs to authenticated;
