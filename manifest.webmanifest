@@ -1,0 +1,10 @@
+{
+  "name":"Kervan Mal Kabul",
+  "short_name":"Kervan Mal Kabul",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#f4f6f8",
+  "theme_color":"#0f2747",
+  "description":"Kervan Market mal kabul ve barkod uygulaması",
+  "icons":[]
+}

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f2747" />
+  <meta name="description" content="Kervan Market Mal Kabul Uygulaması" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="assets/app.css" />
+  <title>Kervan Mal Kabul</title>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark">K</div>
+    <div>
+      <strong>Kervan Market</strong>
+      <span>Mal Kabul</span>
+    </div>
+    <button id="installBtn" class="ghost small hidden">Ana ekrana ekle</button>
+  </header>
+
+  <main id="app" class="app-shell">
+    <section id="homeView" class="view active">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">DEPO OPERASYONU</p>
+          <h1>Mal Kabul</h1>
+          <p>Ürünü okut, miktarı gir, kaydet.</p>
+        </div>
+        <div class="status-pill" id="onlineStatus">Çevrimiçi</div>
+      </div>
+
+      <div class="grid-menu">
+        <button class="menu-card primary" data-view="newReceiptView"><span class="icon">＋</span><b>Yeni Mal Kabul</b><small>Fatura / irsaliye oluştur</small></button>
+        <button class="menu-card" data-view="importView"><span class="icon">⇧</span><b>Ürün Listesi Yükle</b><small>AKINSOFT Excel / CSV</small></button>
+        <button class="menu-card" data-view="historyView"><span class="icon">≡</span><b>Mal Kabul Geçmişi</b><small>Eski kayıtları görüntüle</small></button>
+        <button class="menu-card" data-view="unknownView"><span class="icon">?</span><b>Tanımsız Ürünler</b><small>Sonradan eklenenler</small></button>
+      </div>
+
+      <div class="dashboard-strip">
+        <div><span id="productCount">0</span><small>Ürün</small></div>
+        <div><span id="receiptCount">0</span><small>Mal Kabul</small></div>
+        <div><span id="unknownCount">0</span><small>Tanımsız</small></div>
+      </div>
+    </section>
+
+    <section id="importView" class="view">
+      <div class="section-head"><button class="back">←</button><div><h2>Ürün Listesi Yükle</h2><p>AKINSOFT Excel veya CSV dosyası</p></div></div>
+      <div class="card upload-card">
+        <input id="productFile" type="file" accept=".xlsx,.xls,.csv,text/csv" hidden />
+        <button id="chooseFileBtn" class="btn primary wide">Dosya Seç</button>
+        <p id="fileName" class="muted center">Henüz dosya seçilmedi</p>
+        <div id="importPreview" class="hidden"></div>
+        <button id="importProductsBtn" class="btn navy wide hidden">Ürünleri İçe Aktar</button>
+      </div>
+      <div class="info-card">
+        <b>Beklenen alanlar</b>
+        <p>Barkod, Ürün Kodu, Ürün Adı, Birim, Koli İçi, Kutu İçi, Alış Fiyatı.</p>
+        <small>Boş gelen yeni Excel alanları, daha önce uygulamada tanımladığınız koli/kutu bilgisini silmez.</small>
+      </div>
+    </section>
+
+    <section id="newReceiptView" class="view">
+      <div class="section-head"><button class="back">←</button><div><h2>Yeni Mal Kabul</h2><p>Belge bilgilerini girin</p></div></div>
+      <form id="receiptForm" class="card form-card">
+        <label>Tedarikçi<input id="supplier" placeholder="Örn. Coca Cola" /></label>
+        <label>Fatura / İrsaliye No<input id="invoiceNo" placeholder="Belge numarası" /></label>
+        <div class="form-row">
+          <label>Tarih<input id="receiptDate" type="date" required /></label>
+          <label>Personel<input id="employee" placeholder="Ad Soyad" required /></label>
+        </div>
+        <label>Açıklama<textarea id="description" rows="2" placeholder="Opsiyonel"></textarea></label>
+        <button class="btn primary wide" type="submit">Mal Kabulü Başlat</button>
+      </form>
+    </section>
+
+    <section id="scannerView" class="view scanner-view">
+      <div class="section-head scanner-head"><button class="back" data-special="scanner">←</button><div><h2>Ürün Okut</h2><p id="scannerReceiptLabel">Aktif mal kabul</p></div></div>
+      <div class="scanner-box">
+        <video id="camera" playsinline muted></video>
+        <div class="scan-frame"></div>
+        <div id="cameraMessage" class="camera-message">Kamerayı açmak için aşağıdaki düğmeye basın</div>
+      </div>
+      <div class="scanner-actions">
+        <button id="cameraToggle" class="btn navy">Kamerayı Aç</button>
+        <div class="manual-row"><input id="manualBarcode" inputmode="numeric" placeholder="Barkodu elle yaz" /><button id="manualScanBtn" class="btn">Bul</button></div>
+      </div>
+      <div id="scanResult" class="card hidden"></div>
+      <div id="receiptLines" class="line-list"></div>
+      <div class="sticky-summary">
+        <div><b id="lineCount">0 Kalem</b><span id="unitCount">0 Toplam Adet</span></div>
+        <button id="completeReceiptBtn" class="btn primary">Mal Kabulü Tamamla</button>
+      </div>
+    </section>
+
+    <section id="historyView" class="view">
+      <div class="section-head"><button class="back">←</button><div><h2>Mal Kabul Geçmişi</h2><p>En yeni kayıtlar üstte</p></div></div>
+      <div id="historyList" class="stack"></div>
+    </section>
+
+    <section id="unknownView" class="view">
+      <div class="section-head"><button class="back">←</button><div><h2>Tanımsız Ürünler</h2><p>Sonradan uygulamaya eklenenler</p></div></div>
+      <div id="unknownList" class="stack"></div>
+    </section>
+  </main>
+
+  <dialog id="quantityDialog" class="modal">
+    <form method="dialog" id="quantityForm">
+      <div class="modal-head"><div><small>ÜRÜN BULUNDU</small><h3 id="qProductName">Ürün</h3></div><button value="cancel" class="icon-btn">×</button></div>
+      <div id="qProductMeta" class="product-meta"></div>
+      <label>Giriş Birimi<select id="qUnit"><option value="ADET">ADET</option><option value="KOLI">KOLİ</option><option value="KUTU">KUTU</option></select></label>
+      <label id="conversionWrap" class="hidden">1 <span id="conversionUnitText">Koli</span> kaç adet?<input id="qConversion" type="number" min="1" step="1" /></label>
+      <label>Miktar<input id="qQuantity" type="number" min="0.01" step="0.01" inputmode="decimal" required /></label>
+      <div class="calc-preview" id="calcPreview">Toplam: 0 Adet</div>
+      <button id="saveQuantityBtn" class="btn primary wide" value="default" type="button">Kaydet ve Devam Et</button>
+    </form>
+  </dialog>
+
+  <dialog id="unknownDialog" class="modal">
+    <form method="dialog" id="unknownForm">
+      <div class="modal-head"><div><small>ÜRÜN BULUNAMADI</small><h3>Yeni ürün tanımla</h3></div><button value="cancel" class="icon-btn">×</button></div>
+      <div class="danger-box">Bu barkod ürün listenizde kayıtlı değil.<br><b id="unknownBarcode"></b></div>
+      <label>Ürün Adı<input id="uName" required /></label>
+      <label>Ürün Kodu<input id="uCode" /></label>
+      <label>Birim<select id="uUnit"><option value="ADET">ADET</option><option value="KOLI">KOLİ</option><option value="KUTU">KUTU</option></select></label>
+      <label id="uConversionWrap" class="hidden">Koli/Kutu içi adet<input id="uConversion" type="number" min="1" step="1" /></label>
+      <label>Not<input id="uNote" /></label>
+      <button id="saveUnknownBtn" type="button" class="btn primary wide">Ürünü Kaydet</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast"></div>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
