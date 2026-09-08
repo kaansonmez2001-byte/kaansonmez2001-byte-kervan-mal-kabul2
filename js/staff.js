@@ -1,21 +1,33 @@
 const KStaff = (() => {
  const url='https://gibnvcducxqyrfvrtbub.supabase.co';
  const key='sb_publishable_nKHlFRkeAsq8tOvzv85lsw_BPWNS8jN';
- let client;
+ let client,lastAutoSync=0;
  const normalize=s=>String(s).trim().toLocaleLowerCase('tr-TR').replace(/\s+/g,' ');
  const emailFor=s=>Array.from(new TextEncoder().encode(normalize(s))).map(v=>v.toString(16).padStart(2,'0')).join('')+'@staff.kervan.invalid';
  const map=u=>({...u,createdAt:u.created_at,updatedAt:u.updated_at});
+ const cacheUser=u=>{if(u)localStorage.setItem('kervanCentralUser',JSON.stringify(u));};
+ const cachedUser=()=>{try{return JSON.parse(localStorage.getItem('kervanCentralUser')||'null')}catch{return null}};
+ const cacheList=us=>localStorage.setItem('kervanCentralStaffList',JSON.stringify(us||[]));
+ const cachedList=()=>{try{return JSON.parse(localStorage.getItem('kervanCentralStaffList')||'[]')}catch{return []}};
  function connect(){
   if(!window.supabase?.createClient)throw new Error('Giriş modülü yüklenemedi. İnternet bağlantısını kontrol edin.');
   return client ||= window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'kervan-central-auth-v1'}});
  }
- async function current(){
+ async function current(skipAutoSync=false){
   const c=connect();const {data:{session}}=await c.auth.getSession();
   if(!session)return null;
-  const {data,error}=await c.from('staff').select('*').eq('id',session.user.id).maybeSingle();
-  if(error)throw new Error('Merkezi yetki kontrolü yapılamadı. İnternet bağlantısını kontrol edin.');
-  if(!data?.active){await logout();return null;}
-  return map(data);
+  try{
+   const {data,error}=await c.from('staff').select('*').eq('id',session.user.id).maybeSingle();
+   if(error)throw error;
+   if(!data?.active){await logout();return null;}
+   const user=map(data);cacheUser(user);
+   if(!skipAutoSync && typeof CloudSync!=='undefined' && Date.now()-lastAutoSync>30000){lastAutoSync=Date.now();try{await CloudSync.sync(user,true)}catch(e){console.warn('Arka plan senkronu:',e)}}
+   return user;
+  }catch(e){
+   const cached=cachedUser();
+   if(cached?.id===session.user.id && cached.active!==false)return cached;
+   throw new Error('Merkezi yetki kontrolü yapılamadı. İnternet bağlantısını kontrol edin.');
+  }
  }
  async function login(username,pin,role){
   const c=connect();const {error}=await c.auth.signInWithPassword({email:emailFor(username),password:'Kervan-PIN:'+pin});
@@ -24,12 +36,17 @@ const KStaff = (() => {
   if(!user || user.role!==role){await logout();throw new Error('Hesabınız seçilen giriş türüne uygun değil veya pasif.');}
   return user;
  }
- async function list(){const {data,error}=await connect().from('staff').select('*').order('name');if(error)throw error;return data.map(map);}
+ async function list(){
+  try{const {data,error}=await connect().from('staff').select('*').order('name');if(error)throw error;const us=data.map(map);cacheList(us);return us;}
+  catch(e){const us=cachedList();if(us.length)return us;throw e;}
+ }
  async function manage(body){
   const {data:{session},error}=await connect().auth.getSession();
   if(error || !session)throw new Error('Yeniden giriş yapın.');
   const r=await fetch(url+'/functions/v1/manage-staff',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await r.json();if(!r.ok)throw new Error(data.error||'Personel işlemi tamamlanamadı.');return data.user?map(data.user):data;
+  const data=await r.json();if(!r.ok)throw new Error(data.error||'Personel işlemi tamamlanamadı.');
+  try{await list()}catch{}
+  return data.user?map(data.user):data;
  }
  async function migrateLocal(actor){
   if(actor.role!=='ADMIN')return 0;
@@ -37,11 +54,11 @@ const KStaff = (() => {
   let count=0;
   for(const u of await KDB.all('users')){
    const username=normalize(u.username||'');if(!username || names.has(username))continue;
-   await manage({action:'create',username,name:u.name,role:u.role==='ADMIN'?'ADMIN':'PERSONNEL',active:u.active!==false,pin:'1453'});
+   await manage({action:'create',username,name:u.name||u.username,role:u.role==='ADMIN'?'ADMIN':'PERSONNEL',active:u.active!==false,pin:'1453'});
    names.add(username);count++;
   }
   return count;
  }
- async function logout(){await connect().auth.signOut({scope:'local'});localStorage.removeItem('kervanSession');localStorage.removeItem('kervanLoginRole');}
+ async function logout(){await connect().auth.signOut({scope:'local'});localStorage.removeItem('kervanSession');localStorage.removeItem('kervanLoginRole');localStorage.removeItem('kervanCentralUser');}
  return {connect,current,login,list,manage,migrateLocal,logout};
 })();
