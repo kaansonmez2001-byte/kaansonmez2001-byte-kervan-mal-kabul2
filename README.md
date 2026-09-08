@@ -3,7 +3,7 @@
 Tam saha kullanımı için web tabanlı mal kabul sistemi. Masaüstünde yönetim paneli, telefonda responsive saha ekranı olarak çalışır.
 
 ## Hazır modüller
-- Yönetici / personel PIN girişi (ilk kullanıcı: admin / 1234)
+- Yönetici / personel PIN girişi (ilk kullanıcı: admin / 1453)
 - Responsive sol menülü yönetim paneli
 - AKINSOFT Excel / CSV ürün yükleme ve ürün arama
 - Barkod kamera okutma (EAN/UPC/Code türleri html5-qrcode desteği kapsamında) + manuel barkod
@@ -35,16 +35,19 @@ Kamera localhost'ta veya HTTPS üzerinde çalışır.
 
 ## İlk giriş
 - Kullanıcı: `admin`
-- PIN: `1234`
+- PIN: `1453`
 
-## Supabase
-1. Yeni bir Supabase projesi oluşturun.
-2. SQL Editor içinde `supabase/schema.sql` dosyasını çalıştırın.
-3. Authentication bölümünden bir e-posta/şifre kullanıcısı oluşturun.
-4. Uygulama > Ayarlar ekranında Project URL, Publishable/Anon Key, e-posta ve şifreyi girin.
-5. `Şimdi Senkronize Et` butonuna basın.
-
-Tarayıcıya **service_role / secret key koymayın**. Yalnızca publishable/anon key kullanılmalıdır.
+## Merkezi personel
+Bu sürüm Kervan Mal Kabul Supabase projesine (`gibnvcducxqyrfvrtbub`) bağlıdır.
+- Giriş Supabase Auth üzerinden yapılır; rol ve aktiflik `staff` tablosundan okunur.
+- Kullanıcı yönetimi `manage-staff` Edge Function içinde mevcut yönetici rolü doğrulanarak yapılır.
+- Yeni personellerde varsayılan PIN 1453'tür. Yönetici PIN değiştirebilir; mevcut PIN gösterilmez.
+- Yönetici eski kayıtların bulunduğu cihazdan giriş yaptığında eksik yerel kullanıcılar 1453 PIN ile merkeze aktarılır. Mevcut merkezi kullanıcılar ezilmez.
+- Hesap listesi yönetim ekranında 20 saniyede bir ve pencereye dönüldüğünde yenilenir.
+- Eski cihaz içi oturum giriş yetkisi vermez. Yeni giriş için internet gerekir.
+- `supabase/central-staff.sql` mevcut üretim şemasına uygulanmıştır. `schema.sql` eski kurulum örneğidir; mevcut projeye yeniden uygulamayın.
+- `supabase/functions/manage-staff/index.ts` üretimde yayımlanmıştır; servis anahtarı yalnızca Edge Function ortamında kullanılır.
+- Mal kabul verileri cihaz içinde tutulmaya devam eder; Ayarlar'daki aktarım düğmesi kayıtları merkeze gönderir. Bu sürümde cihazlar arası otomatik paylaşım personel hesaplarını kapsar.
 
 ## Vercel
 Bu klasör static olarak deploy edilebilir. Kamera için production adresi HTTPS olmalıdır.
