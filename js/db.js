@@ -30,6 +30,29 @@ const KDB=(()=>{
  }
  async function all(name){if(name==='users')return KStaff.list();if(!tables[name])return KCache.all(name);await refresh(name);return (await KCache.all(name)).filter(r=>!r.deletedAt&&!r._rejected);}
  async function get(name,key){if(!tables[name])return KCache.get(name,key);await refresh(name);const r=await KCache.get(name,key);return r?.deletedAt||r?._rejected?undefined:r;}
+ async function listSuppliers(){
+  if(actor&&online()){
+   const {data,error}=await client().from('suppliers').select('*').is('deleted_at',null).order('name');
+   if(error)throw error;
+   const mapped=[];for(const row of data) mapped.push(await fromCloud('suppliers',row));
+   const existing=await KCache.all('suppliers'),pending=existing.filter(row=>row._pending),pendingKeys=new Set(pending.map(row=>keyOf('suppliers',row)));
+   const puts=mapped.filter(row=>!pendingKeys.has(keyOf('suppliers',row))),seen=new Set(mapped.map(row=>keyOf('suppliers',row)));
+   const deletes=existing.filter(row=>row._synced&&!row._pending&&!seen.has(keyOf('suppliers',row))).map(row=>keyOf('suppliers',row));
+   await KCache.reconcile('suppliers',puts,deletes);
+  }
+  return (await KCache.all('suppliers')).filter(row=>!row.deletedAt&&!row._rejected);
+ }
+ async function findProduct(barcode){
+  const key=String(barcode||'').trim();if(!key)return;
+  if(actor&&online()){
+   const {data,error}=await client().from('products').select('*').eq('barcode',key).is('deleted_at',null).maybeSingle();
+   if(error)throw error;
+   if(data){const mapped=await fromCloud('products',data);await KCache.put('products',mapped);return mapped;}
+   const cached=await KCache.get('products',key);if(cached?._synced&&!cached._pending)await KCache.del('products',key);
+   return;
+  }
+  const cached=await KCache.get('products',key);return cached?.deletedAt||cached?._rejected?undefined:cached;
+ }
  async function queue(name,value){
   if(!actor)throw new Error('Önce giriş yapın.');
   if(name==='suppliers'&&actor.role!=='ADMIN')throw new Error('Yönetici yetkisi gerekiyor.');
@@ -89,9 +112,10 @@ const KDB=(()=>{
    }
    await KCache.setSetting('centralDataMigrationV1',true);
   }
-  await sync();
+  await repairLegacyProductConflicts();await flush();await refresh('suppliers');notify();
+  setTimeout(async()=>{try{for(const name of Object.keys(tables)){if(name!=='suppliers')await refresh(name);}notify();}catch(e){console.error('Arka plan senkronizasyonu:',e);}},0);
  }
  async function log(user,action,entityType,entityId,description,oldValue=null,newValue=null){return put('auditLogs',{id:crypto.randomUUID(),userId:user?.id,userName:user?.name,action,entityType,entityId,description,oldValue,newValue,createdAt:new Date().toISOString()});}
  async function conflicts(){return (await KCache.all('conflicts')).filter(c=>c.actorId===actor?.id);}
- return {open:KCache.open,setting:KCache.setting,setSetting:KCache.setSetting,all,get,put,add:put,del,indexAll:async(n,i,k)=>(await all(n)).filter(r=>r[i]===k),log,initialize,sync,refresh,flush,conflicts,fromCloud,toCloud};
+ return {open:KCache.open,setting:KCache.setting,setSetting:KCache.setSetting,all,get,listSuppliers,findProduct,put,add:put,del,indexAll:async(n,i,k)=>(await all(n)).filter(r=>r[i]===k),log,initialize,sync,refresh,flush,conflicts,fromCloud,toCloud};
 })();
