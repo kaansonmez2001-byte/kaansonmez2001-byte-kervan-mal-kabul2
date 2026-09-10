@@ -29,7 +29,7 @@ const KStaff = (() => {
   return user;
  }
  async function list(){
-  try{const {data,error}=await connect().from('staff').select('*').order('name');if(error)throw error;const us=data.map(map);cacheList(us);return us;}
+  try{const {data,error}=await connect().from('staff').select('*').is('deleted_at',null).order('name');if(error)throw error;const us=data.map(map);cacheList(us);return us;}
   catch(e){if(!navigator.onLine)return cachedList();throw e;}
  }
  async function manage(body){

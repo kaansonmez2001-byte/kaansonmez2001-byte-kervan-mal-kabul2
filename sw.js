@@ -1,4 +1,4 @@
-const CACHE='kervan-mal-kabul-v8-central-data';
+const CACHE='kervan-mal-kabul-v9-central-data';
 const LOCAL=['/','/index.html','/assets/app.css','/js/cache.js','/js/db.js','/js/staff.js','/js/sync.js','/js/app.js','/manifest.webmanifest'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(LOCAL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

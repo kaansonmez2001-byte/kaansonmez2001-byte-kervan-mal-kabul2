@@ -111,7 +111,7 @@
 
         <section id="view-audit" class="view admin-only-view"><div class="panel"><div class="panel-head"><div><b>İşlem Kayıtları</b><small>Tamamlanmış kayıt değişiklikleri ve yönetim işlemleri</small></div></div><div id="auditTable" class="table-wrap"></div></div></section>
 
-        <section id="view-settings" class="view admin-only-view"><div class="two-col"><div class="section-card"><h3>Bulut Senkronizasyonu</h3><p class="muted">Personel hesapları ve yetkiler tüm cihazlarda aynı merkezden yönetilir. Tüm kayıtlar otomatik güncellenir. Bağlantı yokken işlemler bu cihazda bekletilir.</p><button id="syncNowBtn" class="btn btn-orange btn-block">Şimdi Senkronize Et</button><small id="syncMessage" class="muted"></small><div id="conflictList"></div></div><div class="section-card"><h3>Yerel Ayarlar</h3><label>Market / Şube Adı<input id="branchName" value="Kervan Market"></label><label><span>Okutma sonrası titreşim</span><select id="vibrationSetting"><option value="on">Açık</option><option value="off">Kapalı</option></select></label><button id="saveLocalSettingsBtn" class="btn btn-navy btn-block">Ayarları Kaydet</button><hr><button id="installPwaBtn" class="btn btn-plain btn-block hidden">Telefona Uygulama Gibi Yükle</button></div></div></section>
+        <section id="view-settings" class="view admin-only-view"><div class="two-col"><div class="section-card"><h3>Bulut Senkronizasyonu</h3><p class="muted">Personel hesapları ve yetkiler tüm cihazlarda aynı merkezden yönetilir. Bu cihazdaki mal kabul kayıtlarını aşağıdaki düğmeyle merkeze aktarabilirsiniz.</p><button id="syncNowBtn" class="btn btn-orange btn-block">Şimdi Senkronize Et</button><small id="syncMessage" class="muted"></small></div><div class="section-card"><h3>Yerel Ayarlar</h3><label>Market / Şube Adı<input id="branchName" value="Kervan Market"></label><label><span>Okutma sonrası titreşim</span><select id="vibrationSetting"><option value="on">Açık</option><option value="off">Kapalı</option></select></label><button id="saveLocalSettingsBtn" class="btn btn-navy btn-block">Ayarları Kaydet</button><hr><button id="installPwaBtn" class="btn btn-plain btn-block hidden">Telefona Uygulama Gibi Yükle</button></div></div></section>
       </main>
     </div>
   </div>
@@ -126,7 +126,6 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.3"></script>
-  <script src="/js/cache.js"></script>
   <script src="/js/db.js"></script>
   <script src="/js/staff.js"></script>
   <script src="/js/sync.js"></script>

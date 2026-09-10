@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.95.3';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
-const fields = 'id,username,name,role,active,created_at,updated_at,deleted_at';
+const fields = 'id,username,name,role,active,created_at,updated_at';
 const normalize = (s: string) => s.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
 const emailFor = (username: string) => Array.from(new TextEncoder().encode(username)).map(v=>v.toString(16).padStart(2,'0')).join('') + '@staff.kervan.invalid';
 Deno.serve(async req => {
@@ -13,7 +13,7 @@ Deno.serve(async req => {
   const {data:auth,error:authError} = await db.auth.getUser(token);
   if (authError || !auth.user) return reply({error:'Oturum açmanız gerekiyor.'},401);
   const {data:actor,error:actorError} = await db.from('staff').select(fields).eq('id',auth.user.id).single();
-  if (actorError || !actor?.active || actor.deleted_at || actor.role !== 'ADMIN') return reply({error:'Yönetici yetkisi gerekiyor.'},403);
+  if (actorError || !actor?.active || actor.role !== 'ADMIN') return reply({error:'Yönetici yetkisi gerekiyor.'},403);
   const body = await req.json();
   if (body.action === 'create') {
    const username=normalize(String(body.username||'')), name=String(body.name||'').trim(), role=body.role;
@@ -28,14 +28,13 @@ Deno.serve(async req => {
    if(insertError){await db.auth.admin.deleteUser(created.user.id);throw insertError;}
    return reply({user:staff});
   }
-  if(body.action === 'toggle' || body.action === 'resetPin' || body.action === 'role') {
+  if(body.action === 'toggle' || body.action === 'resetPin') {
    const {data:target,error}=await db.from('staff').select(fields).eq('id',body.id).single();
    if(error || !target) return reply({error:'Kullanıcı bulunamadı.'},404);
-   if(body.action === 'toggle' || body.action === 'role') {
+   if(body.action === 'toggle') {
     if(target.id===actor.id) return reply({error:'Kendi hesabınızı pasif edemezsiniz.'},400);
-    if(body.action==='toggle' && typeof body.active!=='boolean') return reply({error:'Durum geçersiz.'},400);
-    if(body.action==='role' && !['ADMIN','PERSONNEL'].includes(body.role)) return reply({error:'Rol geçersiz.'},400);
-    const {data:user,error:updateError}=await db.rpc('manage_staff_status',{p_actor:actor.id,p_id:target.id,p_role:body.action==='role'?body.role:target.role,p_active:body.action==='toggle'?body.active:target.active});
+    if(typeof body.active!=='boolean') return reply({error:'Durum geçersiz.'},400);
+    const {data:user,error:updateError}=await db.from('staff').update({active:body.active,updated_at:new Date().toISOString()}).eq('id',target.id).select(fields).single();
     if(updateError) throw updateError;
     return reply({user});
    }
