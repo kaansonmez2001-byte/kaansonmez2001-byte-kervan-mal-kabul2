@@ -13,21 +13,13 @@ const KStaff = (() => {
   if(!window.supabase?.createClient)throw new Error('Giriş modülü yüklenemedi. İnternet bağlantısını kontrol edin.');
   return client ||= window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'kervan-central-auth-v1'}});
  }
- async function current(skipAutoSync=false){
-  const c=connect();const {data:{session}}=await c.auth.getSession();
-  if(!session)return null;
-  try{
-   const {data,error}=await c.from('staff').select('*').eq('id',session.user.id).maybeSingle();
-   if(error)throw error;
-   if(!data?.active){await logout();return null;}
-   const user=map(data);cacheUser(user);
-   if(!skipAutoSync && typeof CloudSync!=='undefined' && Date.now()-lastAutoSync>30000){lastAutoSync=Date.now();try{await CloudSync.sync(user,true)}catch(e){console.warn('Arka plan senkronu:',e)}}
-   return user;
-  }catch(e){
-   const cached=cachedUser();
-   if(cached?.id===session.user.id && cached.active!==false)return cached;
-   throw new Error('Merkezi yetki kontrolü yapılamadı. İnternet bağlantısını kontrol edin.');
-  }
+ async function current(){
+  const {data:{session}}=await connect().auth.getSession();if(!session)return null;
+  if(!navigator.onLine){const u=cachedUser();return u?.id===session.user.id&&u.active!==false?u:null;}
+  const {data,error}=await connect().from('staff').select('*').eq('id',session.user.id).maybeSingle();
+  if(error)throw new Error('Merkezi yetki doğrulanamadı.');
+  if(!data?.active||data.deleted_at){await logout();return null;}
+  const user=map(data);cacheUser(user);return user;
  }
  async function login(username,pin,role){
   const c=connect();const {error}=await c.auth.signInWithPassword({email:emailFor(username),password:'Kervan-PIN:'+pin});
@@ -38,7 +30,7 @@ const KStaff = (() => {
  }
  async function list(){
   try{const {data,error}=await connect().from('staff').select('*').order('name');if(error)throw error;const us=data.map(map);cacheList(us);return us;}
-  catch(e){const us=cachedList();if(us.length)return us;throw e;}
+  catch(e){if(!navigator.onLine)return cachedList();throw e;}
  }
  async function manage(body){
   const {data:{session},error}=await connect().auth.getSession();
@@ -50,9 +42,9 @@ const KStaff = (() => {
  }
  async function migrateLocal(actor){
   if(actor.role!=='ADMIN')return 0;
-  const central=await list(),names=new Set(central.map(u=>normalize(u.username)));
+  if(!navigator.onLine)return 0;const central=await list(),names=new Set(central.map(u=>normalize(u.username)));
   let count=0;
-  for(const u of await KDB.all('users')){
+  for(const u of await KCache.all('users')){
    const username=normalize(u.username||'');if(!username || names.has(username))continue;
    await manage({action:'create',username,name:u.name||u.username,role:u.role==='ADMIN'?'ADMIN':'PERSONNEL',active:u.active!==false,pin:'1453'});
    names.add(username);count++;

@@ -17,7 +17,7 @@ Tam saha kullanımı için web tabanlı mal kabul sistemi. Masaüstünde yöneti
 - Personel/kullanıcı yönetimi ve rol bazlı menü
 - Rapor ekranı
 - Excel dışa aktarma
-- IndexedDB ile offline veri saklama
+- Supabase ana veri kaynağı + IndexedDB offline cache/outbox
 - PWA service worker
 - Supabase push senkronizasyonu
 - Vercel static deployment ayarı
@@ -37,23 +37,23 @@ Kamera localhost'ta veya HTTPS üzerinde çalışır.
 - Kullanıcı: `admin`
 - PIN: `1453`
 
-## Merkezi personel
+## Merkezi veri ve personel
 Bu sürüm Kervan Mal Kabul Supabase projesine (`gibnvcducxqyrfvrtbub`) bağlıdır.
 - Giriş Supabase Auth üzerinden yapılır; rol ve aktiflik `staff` tablosundan okunur.
 - Kullanıcı yönetimi `manage-staff` Edge Function içinde mevcut yönetici rolü doğrulanarak yapılır.
 - Yeni personellerde varsayılan PIN 1453'tür. Yönetici PIN değiştirebilir; mevcut PIN gösterilmez.
 - Yönetici eski kayıtların bulunduğu cihazdan giriş yaptığında eksik yerel kullanıcılar 1453 PIN ile merkeze aktarılır. Mevcut merkezi kullanıcılar ezilmez.
-- Hesap listesi yönetim ekranında 20 saniyede bir ve pencereye dönüldüğünde yenilenir.
+- Personel, tedarikçi, ürün, mal kabul, satır ve işlem kayıtları Supabase'den okunur; ekran açılışında ve Realtime bildirimi geldiğinde yenilenir.
 - Eski cihaz içi oturum giriş yetkisi vermez. Yeni giriş için internet gerekir.
-- `supabase/central-staff.sql` mevcut üretim şemasına uygulanmıştır. `schema.sql` eski kurulum örneğidir; mevcut projeye yeniden uygulamayın.
+- `supabase/schema.sql` canlı üretim şemasıyla eşitlenmiş, yeni kurulum için idempotent ana şemadır. `central-data.sql` mevcut kurulumların yükseltme dosyasıdır.
 - `supabase/functions/manage-staff/index.ts` üretimde yayımlanmıştır; servis anahtarı yalnızca Edge Function ortamında kullanılır.
-- Mal kabul verileri cihaz içinde tutulmaya devam eder; Ayarlar'daki aktarım düğmesi kayıtları merkeze gönderir. Bu sürümde cihazlar arası otomatik paylaşım personel hesaplarını kapsar.
+- Silmeler `deleted_at` tombstone olarak saklanır. `updated_at` tabanlı atomik karşılaştırma eski cihazların güncel veriyi ezmesini engeller.
 
 ## Vercel
 Bu klasör static olarak deploy edilebilir. Kamera için production adresi HTTPS olmalıdır.
 
 ## Offline davranışı
-Uygulama verileri IndexedDB'de tutulur. İnternet yokken mal kabul yapılabilir. Bulut ayarı yapılmışsa internet geri geldiğinde senkronizasyon denenir.
+İnternet yokken son merkezi snapshot IndexedDB'den gösterilir ve işlemler outbox kuyruğunda saklanır. Bağlantı gelince otomatik gönderilir; çakışmalar Ayarlar ekranında korunur.
 
 ## APK'ya geçiş
 Bu PWA daha sonra Capacitor ile Android APK kabuğuna alınabilir. Veri modeli ve iş akışları aynı kalır.
