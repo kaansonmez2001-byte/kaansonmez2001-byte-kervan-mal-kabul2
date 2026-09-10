@@ -22,8 +22,10 @@ const KDB=(()=>{
   if(pendingReads.has(name))return pendingReads.get(name);
   const task=(async()=>{
    const rows=[];for(let start=0;;start+=500){const {data,error}=await client().from(tables[name]).select('*').order('local_id').range(start,start+499);if(error)throw error;rows.push(...data);if(data.length<500)break;}
-   const seen=new Set();for(const row of rows){const mapped=await fromCloud(name,row),key=keyOf(name,mapped);seen.add(key);const old=await KCache.get(name,key);if(!old?._pending)await KCache.put(name,mapped);}
-   for(const old of await KCache.all(name)){const key=keyOf(name,old);if(old._synced&&!old._pending&&!seen.has(key))await KCache.del(name,key);}
+   const existing=await KCache.all(name),oldByKey=new Map(existing.map(row=>[keyOf(name,row),row])),seen=new Set(),puts=[];
+   for(const row of rows){const mapped=await fromCloud(name,row),key=keyOf(name,mapped);seen.add(key);if(!oldByKey.get(key)?._pending)puts.push(mapped);}
+   const deletes=existing.filter(old=>old._synced&&!old._pending&&!seen.has(keyOf(name,old))).map(old=>keyOf(name,old));
+   await KCache.reconcile(name,puts,deletes);
   })();pendingReads.set(name,task);try{await task;}finally{pendingReads.delete(name);}
  }
  async function all(name){if(name==='users')return KStaff.list();if(!tables[name])return KCache.all(name);await refresh(name);return (await KCache.all(name)).filter(r=>!r.deletedAt&&!r._rejected);}
