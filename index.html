@@ -71,7 +71,7 @@
 
         <section id="view-newReceipt" class="view">
           <div class="section-card narrow"><h3>Yeni Mal Kabul</h3><p class="muted">Belge bilgilerini girin. Zorunlu olmayan alanları boş bırakabilirsiniz.</p>
-            <div class="form-grid"><label>Tedarikçi<select id="receiptSupplier"><option value="">Tedarikçi seçin</option></select></label><label>Fatura / İrsaliye No<input id="receiptInvoice" placeholder="Örn. IRS-2026-001"></label><label>Tarih<input id="receiptDate" type="date"></label><label>Malı Kabul Eden<input id="receiptEmployee" readonly></label><label class="full">Açıklama<textarea id="receiptDescription" rows="3" placeholder="Opsiyonel not"></textarea></label></div>
+            <div class="form-grid"><label class="full">Tedarikçi Ara<input id="receiptSupplierSearch" type="search" autocomplete="off" placeholder="Firma adından birkaç harf yazın"></label><label class="full">Tedarikçi<select id="receiptSupplier"><option value="">Tedarikçi seçin</option></select><small id="receiptSupplierCount" class="muted"></small></label><label>Fatura / İrsaliye No<input id="receiptInvoice" placeholder="Örn. IRS-2026-001"></label><label>Tarih<input id="receiptDate" type="date"></label><label>Malı Kabul Eden<input id="receiptEmployee" readonly></label><label class="full">Açıklama<textarea id="receiptDescription" rows="3" placeholder="Opsiyonel not"></textarea></label></div>
             <button id="startReceiptBtn" class="btn btn-orange btn-block big">Mal Kabulü Başlat →</button>
           </div>
         </section>
@@ -126,10 +126,10 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.3"></script>
-  <script src="/js/cache.js?v=13"></script>
-  <script src="/js/db.js?v=13"></script>
-  <script src="/js/staff.js?v=13"></script>
-  <script src="/js/sync.js?v=13"></script>
-  <script src="/js/app.js?v=13"></script>
+  <script src="/js/cache.js?v=14"></script>
+  <script src="/js/db.js?v=14"></script>
+  <script src="/js/staff.js?v=14"></script>
+  <script src="/js/sync.js?v=14"></script>
+  <script src="/js/app.js?v=14"></script>
 </body>
 </html>
