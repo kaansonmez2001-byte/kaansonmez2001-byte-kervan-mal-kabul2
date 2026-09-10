@@ -120,16 +120,18 @@
 
   <dialog id="unknownDialog" class="modal"><div class="modal-body"><button class="modal-close" data-close="unknownDialog">×</button><span class="eyebrow danger">ÜRÜN BULUNAMADI</span><h3>Yeni Ürün Tanımla</h3><div class="danger-strip">Barkod: <b id="unknownBarcode"></b></div><div class="form-grid"><label class="full">Ürün Adı<input id="unknownName"></label><label>Ürün Kodu<input id="unknownCode"></label><label>Birim<select id="unknownUnit"><option>ADET</option><option>KOLI</option><option>KUTU</option></select></label><label id="unknownConvWrap" class="full hidden">Koli / Kutu İçi<input id="unknownConv" type="number" min="1" step="1"></label><label class="full">Not<input id="unknownNote"></label></div><button id="saveUnknownBtn" class="btn btn-orange btn-block">Ürünü Kaydet ve Mal Kabule Ekle</button></div></dialog>
 
-  <dialog id="receiptDialog" class="modal wide-modal"><div class="modal-body"><button class="modal-close" data-close="receiptDialog">×</button><span class="eyebrow">MAL KABUL DETAYI</span><h3 id="detailTitle">Belge</h3><div id="detailMeta" class="info-strip"></div><div id="detailLines" class="table-wrap"></div><button id="detailExportBtn" class="btn btn-navy">Excel'e Aktar</button></div></dialog>
+  <dialog id="receiptDialog" class="modal wide-modal"><div class="modal-body"><button class="modal-close" data-close="receiptDialog">×</button><span class="eyebrow">MAL KABUL DETAYI</span><h3 id="detailTitle">Belge</h3><div id="detailMeta" class="info-strip"></div><div id="detailLines" class="table-wrap"></div><div class="action-row"><button id="editReceiptBtn" class="btn btn-orange admin-only">Kaydı Düzenle</button><button id="detailExportBtn" class="btn btn-navy">Excel'e Aktar</button></div></div></dialog>
+
+  <dialog id="editReceiptDialog" class="modal"><div class="modal-body"><button class="modal-close" data-close="editReceiptDialog">×</button><span class="eyebrow">MAL KABULÜ DÜZENLE</span><h3>Belge Bilgileri</h3><div class="form-grid"><label class="full">Tedarikçi<select id="editReceiptSupplier"></select></label><label>Fatura / İrsaliye No<input id="editReceiptInvoice"></label><label>Tarih<input id="editReceiptDate" type="date"></label><label class="full">Açıklama<textarea id="editReceiptDescription" rows="3"></textarea></label></div><button id="saveReceiptEditBtn" class="btn btn-orange btn-block">Değişiklikleri Kaydet</button></div></dialog>
 
   <div id="toast" class="toast"></div>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.3"></script>
-  <script src="/js/cache.js?v=14"></script>
-  <script src="/js/db.js?v=14"></script>
-  <script src="/js/staff.js?v=14"></script>
-  <script src="/js/sync.js?v=14"></script>
-  <script src="/js/app.js?v=14"></script>
+  <script src="/js/cache.js?v=15"></script>
+  <script src="/js/db.js?v=15"></script>
+  <script src="/js/staff.js?v=15"></script>
+  <script src="/js/sync.js?v=15"></script>
+  <script src="/js/app.js?v=15"></script>
 </body>
 </html>
