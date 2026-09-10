@@ -9,6 +9,10 @@ const KStaff = (() => {
  const cachedUser=()=>{try{return JSON.parse(localStorage.getItem('kervanCentralUser')||'null')}catch{return null}};
  const cacheList=us=>localStorage.setItem('kervanCentralStaffList',JSON.stringify(us||[]));
  const cachedList=()=>{try{return JSON.parse(localStorage.getItem('kervanCentralStaffList')||'[]')}catch{return []}};
+ const deadline=(promise,ms=15000)=>new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>reject(new Error('Giriş sunucusu zamanında yanıt vermedi. İnternet bağlantınızı kontrol edip tekrar deneyin.')),ms);
+  Promise.resolve(promise).then(value=>{clearTimeout(timer);resolve(value)},error=>{clearTimeout(timer);reject(error)});
+ });
  function connect(){
   if(!window.supabase?.createClient)throw new Error('Giriş modülü yüklenemedi. İnternet bağlantısını kontrol edin.');
   return client ||= window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'kervan-central-auth-v1'}});
@@ -22,7 +26,7 @@ const KStaff = (() => {
   const user=map(data);cacheUser(user);return user;
  }
  async function login(username,pin,role){
-  const c=connect();const {error}=await c.auth.signInWithPassword({email:emailFor(username),password:'Kervan-PIN:'+pin});
+  const c=connect();const {error}=await deadline(c.auth.signInWithPassword({email:emailFor(username),password:'Kervan-PIN:'+pin}));
   if(error)throw new Error(error.status===429?'Çok fazla deneme yapıldı. Biraz sonra tekrar deneyin.':'Kullanıcı adı veya PIN hatalı; bağlantınızı da kontrol edin.');
   const user=await current();
   if(!user || user.role!==role){await logout();throw new Error('Hesabınız seçilen giriş türüne uygun değil veya pasif.');}
