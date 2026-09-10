@@ -1,13 +1,3 @@
--- Canonical Kervan Mal Kabul schema. Safe for a new project and idempotent on production.
-create extension if not exists pgcrypto;
-create schema if not exists private;
-create table if not exists public.profiles(id uuid primary key references auth.users(id) on delete cascade,full_name text,role text not null default 'personnel' check(role in('admin','personnel')),active boolean not null default true,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
-create table if not exists public.staff(id uuid primary key references auth.users(id) on delete cascade,username text not null unique,name text not null,role text not null check(role in('ADMIN','PERSONNEL')),active boolean not null default true,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),deleted_at timestamptz);
-create table if not exists public.suppliers(id uuid primary key default gen_random_uuid(),local_id text unique,name text not null,phone text,tax_number text,notes text,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),deleted_at timestamptz,last_mutation uuid);
-create table if not exists public.products(id uuid primary key default gen_random_uuid(),local_id text unique,barcode text not null unique,product_code text,product_name text not null,unit text check(unit in('ADET','KOLI','KUTU') or unit is null),case_quantity numeric,box_quantity numeric,purchase_price numeric,source text not null default 'akınsoft',manually_added boolean not null default false,manually_defined_unit boolean not null default false,notes text,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),deleted_at timestamptz,last_mutation uuid);
-create table if not exists public.receipts(id uuid primary key default gen_random_uuid(),local_id text unique,supplier_id uuid references public.suppliers(id),supplier_name text,invoice_number text,receipt_date timestamptz not null default now(),employee_id uuid references auth.users(id),employee_name text,description text,status text not null default 'draft' check(status in('draft','completed','cancelled')),total_lines integer not null default 0,total_units numeric not null default 0,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),deleted_at timestamptz,last_mutation uuid);
-create table if not exists public.receipt_lines(id uuid primary key default gen_random_uuid(),local_id text unique,receipt_id uuid not null references public.receipts(id),product_id uuid references public.products(id),barcode text not null,product_code text,product_name text not null,entered_quantity numeric not null,entered_unit text not null check(entered_unit in('ADET','KOLI','KUTU')),conversion_quantity numeric not null default 1,total_units numeric not null,purchase_price numeric,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),deleted_at timestamptz,last_mutation uuid);
-create table if not exists public.audit_logs(id bigint generated always as identity primary key,local_id text unique,user_id uuid references auth.users(id),user_name text,action text not null,entity_type text not null,entity_id text,description text,old_value jsonb,new_value jsonb,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),deleted_at timestamptz,last_mutation uuid);
 begin;
 -- Existing data is retained; timestamps are server-owned from this release onward.
 do $$ declare t text; begin
@@ -129,8 +119,6 @@ declare oldrow jsonb; result jsonb; cols text; vals text; sets text; clean jsonb
  if oldrow is null and p_table='products' and nullif(p_data->>'barcode','') is not null then
   select to_jsonb(t) into oldrow from public.products t where t.barcode=p_data->>'barcode' for update;
   natural_match:=oldrow is not null;
-  -- A product created offline may already have arrived from an Excel import.
-  -- Adopt the central row and clear the outbox instead of violating barcode uniqueness.
   if natural_match and p_base is null then
    return jsonb_build_object('status','ok','row',oldrow,'deduplicated',true);
   end if;
