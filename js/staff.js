@@ -25,11 +25,13 @@ const KStaff = (() => {
   if(!data?.active||data.deleted_at){await logout();return null;}
   const user=map(data);cacheUser(user);return user;
  }
- async function login(username,pin,role){
-  const c=connect();const {error}=await deadline(c.auth.signInWithPassword({email:emailFor(username),password:'Kervan-PIN:'+pin}));
+ async function login(username,pin){
+  const c=connect();const {data:authData,error}=await deadline(c.auth.signInWithPassword({email:emailFor(username),password:'Kervan-PIN:'+pin}));
   if(error)throw new Error(error.status===429?'Çok fazla deneme yapıldı. Biraz sonra tekrar deneyin.':'Kullanıcı adı veya PIN hatalı; bağlantınızı da kontrol edin.');
-  const user=await current();
-  if(!user || user.role!==role){await logout();throw new Error('Hesabınız seçilen giriş türüne uygun değil veya pasif.');}
+  const {data,error:profileError}=await deadline(c.from('staff').select('*').eq('id',authData.user.id).maybeSingle());
+  if(profileError)throw new Error('Merkezi yetki doğrulanamadı. Lütfen tekrar deneyin.');
+  if(!data?.active||data.deleted_at){await deadline(c.auth.signOut({scope:'local'}),5000).catch(()=>{});throw new Error('Bu hesap pasif veya kullanım dışı.');}
+  const user=map(data);cacheUser(user);
   return user;
  }
  async function list(){
