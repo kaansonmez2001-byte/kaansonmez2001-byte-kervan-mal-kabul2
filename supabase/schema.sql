@@ -7,11 +7,12 @@ create table if not exists public.suppliers(id uuid primary key default gen_rand
 create table if not exists public.products(id uuid primary key default gen_random_uuid(),local_id text unique,barcode text not null unique,product_code text,product_name text not null,unit text check(unit in('ADET','KOLI','KUTU') or unit is null),case_quantity numeric,box_quantity numeric,purchase_price numeric,source text not null default 'akınsoft',manually_added boolean not null default false,manually_defined_unit boolean not null default false,notes text,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),deleted_at timestamptz,last_mutation uuid);
 create table if not exists public.receipts(id uuid primary key default gen_random_uuid(),local_id text unique,supplier_id uuid references public.suppliers(id),supplier_name text,invoice_number text,receipt_date timestamptz not null default now(),employee_id uuid references auth.users(id),employee_name text,description text,status text not null default 'draft' check(status in('draft','completed','cancelled')),total_lines integer not null default 0,total_units numeric not null default 0,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),deleted_at timestamptz,last_mutation uuid);
 create table if not exists public.receipt_lines(id uuid primary key default gen_random_uuid(),local_id text unique,receipt_id uuid not null references public.receipts(id),product_id uuid references public.products(id),barcode text not null,product_code text,product_name text not null,entered_quantity numeric not null,entered_unit text not null check(entered_unit in('ADET','KOLI','KUTU')),conversion_quantity numeric not null default 1,total_units numeric not null,purchase_price numeric,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),deleted_at timestamptz,last_mutation uuid);
+create table if not exists public.shortage_reports(id uuid primary key default gen_random_uuid(),local_id text unique,receipt_id uuid not null references public.receipts(id),supplier_name text,invoice_number text,product_name text not null,missing_quantity numeric not null check(missing_quantity>0),reported_by uuid not null references auth.users(id),reporter_name text,status text not null default 'open' check(status in('open','resolved')),admin_note text,resolved_at timestamptz,resolved_by uuid references auth.users(id),created_at timestamptz not null default now(),updated_at timestamptz not null default now(),deleted_at timestamptz,last_mutation uuid);
 create table if not exists public.audit_logs(id bigint generated always as identity primary key,local_id text unique,user_id uuid references auth.users(id),user_name text,action text not null,entity_type text not null,entity_id text,description text,old_value jsonb,new_value jsonb,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),deleted_at timestamptz,last_mutation uuid);
 begin;
 -- Existing data is retained; timestamps are server-owned from this release onward.
 do $$ declare t text; begin
- foreach t in array array['suppliers','products','receipts','receipt_lines','audit_logs'] loop
+ foreach t in array array['suppliers','products','receipts','receipt_lines','shortage_reports','audit_logs'] loop
   execute format('alter table public.%I add column if not exists deleted_at timestamptz, add column if not exists last_mutation uuid',t);
   execute format('alter table public.%I add column if not exists updated_at timestamptz not null default now()',t);
   execute format('update public.%I set local_id=id::text where local_id is null',t);
@@ -19,6 +20,10 @@ do $$ declare t text; begin
   execute format('create unique index if not exists %I on public.%I(local_id)',t||'_local_id_uidx',t);
  end loop;
 end $$;
+drop index if exists public.shortage_reports_local_id_uidx;
+create index if not exists shortage_reports_receipt_id_idx on public.shortage_reports(receipt_id);
+create index if not exists shortage_reports_reported_by_idx on public.shortage_reports(reported_by);
+create index if not exists shortage_reports_resolved_by_idx on public.shortage_reports(resolved_by);
 alter table public.staff add column if not exists deleted_at timestamptz;
 create or replace function private.staff_role() returns text language sql stable security definer set search_path='' as $$
  select role from public.staff where id=(select auth.uid()) and active and deleted_at is null
@@ -72,6 +77,18 @@ declare r text:=private.staff_role(); parent public.receipts; begin
   if new.entered_unit='ADET' then new.conversion_quantity:=1; end if;
   new.total_units:=new.entered_quantity*new.conversion_quantity;
  end if;
+ if TG_TABLE_NAME='shortage_reports' then
+  select * into parent from public.receipts where id=new.receipt_id and deleted_at is null;
+  if not found or parent.status<>'completed' then raise exception 'Eksik ürün yalnızca tamamlanmış mal kabulden bildirilebilir'; end if;
+  if btrim(coalesce(new.product_name,''))='' or new.missing_quantity<=0 then raise exception 'Ürün adı ve eksik adet zorunludur'; end if;
+  if TG_OP='INSERT' then
+   if r<>'ADMIN' and parent.employee_id<>auth.uid() then raise exception 'Yalnızca kendi mal kabulünüz için bildirim oluşturabilirsiniz' using errcode='42501'; end if;
+   new.reported_by:=auth.uid(); select name into new.reporter_name from public.staff where id=auth.uid(); new.status:='open'; new.admin_note:=null; new.resolved_at:=null; new.resolved_by:=null;
+  elsif r<>'ADMIN' then raise exception 'Eksik ürün bildirimi yalnızca yönetici tarafından güncellenebilir' using errcode='42501';
+  elsif new.status='resolved' and old.status<>'resolved' then new.resolved_at:=clock_timestamp();new.resolved_by:=auth.uid();
+  elsif new.status='open' then new.resolved_at:=null;new.resolved_by:=null;
+  end if;
+ end if;
  if TG_TABLE_NAME='audit_logs' then
   if TG_OP<>'INSERT' then raise exception 'İşlem geçmişi değiştirilemez' using errcode='42501'; end if;
   new.user_id:=auth.uid(); select name into new.user_name from public.staff where id=auth.uid();
@@ -83,7 +100,7 @@ end $$;
 revoke all on function private.guard_data_write() from public,anon;
 grant execute on function private.guard_data_write() to authenticated;
 do $$ declare t text; p record; begin
- foreach t in array array['suppliers','products','receipts','receipt_lines','audit_logs'] loop
+ foreach t in array array['suppliers','products','receipts','receipt_lines','shortage_reports','audit_logs'] loop
   execute format('alter table public.%I enable row level security',t);
   for p in select policyname from pg_policies where schemaname='public' and tablename=t loop execute format('drop policy %I on public.%I',p.policyname,t); end loop;
   execute format('revoke all on public.%I from anon,authenticated',t);
@@ -103,6 +120,9 @@ create policy receipts_update on public.receipts for update to authenticated usi
 create policy lines_read on public.receipt_lines for select to authenticated using (exists(select 1 from public.receipts r where r.id=receipt_id));
 create policy lines_insert on public.receipt_lines for insert to authenticated with check ((select private.staff_role())='ADMIN' or exists(select 1 from public.receipts r where r.id=receipt_id and r.employee_id=(select auth.uid()) and r.status='draft' and r.deleted_at is null));
 create policy lines_update on public.receipt_lines for update to authenticated using ((select private.staff_role())='ADMIN' or exists(select 1 from public.receipts r where r.id=receipt_id and r.employee_id=(select auth.uid()) and r.deleted_at is null)) with check ((select private.staff_role())='ADMIN' or exists(select 1 from public.receipts r where r.id=receipt_id and r.employee_id=(select auth.uid()) and r.deleted_at is null));
+create policy shortages_read on public.shortage_reports for select to authenticated using ((select private.staff_role())='ADMIN' or reported_by=(select auth.uid()));
+create policy shortages_insert on public.shortage_reports for insert to authenticated with check ((select private.staff_role()) is not null and reported_by=(select auth.uid()));
+create policy shortages_update on public.shortage_reports for update to authenticated using ((select private.staff_role())='ADMIN') with check ((select private.staff_role())='ADMIN');
 create policy audit_read on public.audit_logs for select to authenticated using ((select private.staff_role())='ADMIN' or ((select private.staff_role())='PERSONNEL' and user_id=(select auth.uid())));
 create policy audit_insert on public.audit_logs for insert to authenticated with check ((select private.staff_role()) is not null and user_id=(select auth.uid()));
 grant usage on sequence public.audit_logs_id_seq to authenticated;
@@ -117,6 +137,7 @@ declare oldrow jsonb; result jsonb; cols text; vals text; sets text; clean jsonb
  when 'products' then array['barcode','product_code','product_name','unit','case_quantity','box_quantity','purchase_price','manually_added','manually_defined_unit','notes','deleted_at']
  when 'receipts' then array['supplier_id','supplier_name','invoice_number','receipt_date','employee_id','employee_name','description','status','deleted_at']
  when 'receipt_lines' then array['receipt_id','barcode','product_code','product_name','entered_quantity','entered_unit','conversion_quantity','total_units','purchase_price','deleted_at']
+ when 'shortage_reports' then array['receipt_id','supplier_name','invoice_number','product_name','missing_quantity','reported_by','reporter_name','status','admin_note','resolved_at','resolved_by','deleted_at']
  when 'audit_logs' then array['user_id','user_name','action','entity_type','entity_id','description','old_value','new_value'] else null end;
  if allowed is null or p_key is null or p_key='' or length(p_key)>200 then raise exception 'Geçersiz tablo veya kimlik'; end if;
  -- Serialization also covers concurrent first inserts and retries after lost responses.
@@ -144,6 +165,12 @@ declare oldrow jsonb; result jsonb; cols text; vals text; sets text; clean jsonb
  clean:=clean||jsonb_build_object('local_id',coalesce(oldrow->>'local_id',p_key),'last_mutation',p_mutation);
  if p_table='receipts' and clean->>'supplier_id' is not null then clean:=jsonb_set(clean,'{supplier_id}',coalesce((select to_jsonb(id) from public.suppliers where local_id=clean->>'supplier_id' and deleted_at is null),'null'::jsonb)); end if;
  if p_table='receipt_lines' then clean:=jsonb_set(clean,'{receipt_id}',coalesce((select to_jsonb(id) from public.receipts where local_id=clean->>'receipt_id'),'null'::jsonb)); end if;
+ if p_table='shortage_reports' then
+  if clean->>'receipt_id' is not null then clean:=jsonb_set(clean,'{receipt_id}',coalesce((select to_jsonb(id) from public.receipts where local_id=clean->>'receipt_id'),'null'::jsonb));
+  elsif oldrow is not null then clean:=clean||jsonb_build_object('receipt_id',oldrow->'receipt_id'); end if;
+  if oldrow is null then clean:=clean||jsonb_build_object('reported_by',auth.uid());
+  else clean:=clean||jsonb_build_object('reported_by',oldrow->'reported_by','reporter_name',oldrow->'reporter_name'); end if;
+ end if;
  if p_table='audit_logs' then clean:=clean||jsonb_build_object('user_id',auth.uid()); end if;
  select string_agg(format('%I',key),','),string_agg(format('r.%I',key),','),string_agg(format('%I=r.%I',key,key),',') into cols,vals,sets from jsonb_object_keys(clean) key;
  if oldrow is null then
@@ -159,7 +186,7 @@ grant execute on function public.apply_change(text,text,jsonb,timestamptz,uuid) 
 
 -- Realtime invalidates caches; paginated reads still provide the authoritative snapshot.
 do $$ declare t text; begin
- foreach t in array array['staff','suppliers','products','receipts','receipt_lines','audit_logs'] loop
+ foreach t in array array['staff','suppliers','products','receipts','receipt_lines','shortage_reports','audit_logs'] loop
   if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename=t) then execute format('alter publication supabase_realtime add table public.%I',t); end if;
  end loop;
 end $$;
