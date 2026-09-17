@@ -1,5 +1,5 @@
-const CACHE='kervan-mal-kabul-v21-full-receipt-edit';
-const LOCAL=['/','/index.html','/assets/app.css','/js/cache.js?v=21','/js/db.js?v=21','/js/staff.js?v=21','/js/sync.js?v=21','/js/app.js?v=21','/manifest.webmanifest'];
+const CACHE='kervan-mal-kabul-v22-shortage-reports';
+const LOCAL=['/','/index.html','/assets/app.css','/js/cache.js?v=22','/js/db.js?v=22','/js/staff.js?v=22','/js/sync.js?v=22','/js/app.js?v=22','/manifest.webmanifest'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(LOCAL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
