@@ -1,7 +1,7 @@
 // Supabase is authoritative; KCache is a durable projection and offline outbox.
 const KDB=(()=>{
- const tables={suppliers:'suppliers',products:'products',receipts:'receipts',receiptLines:'receipt_lines',auditLogs:'audit_logs'};
- const fields={productCode:'product_code',productName:'product_name',caseQuantity:'case_quantity',boxQuantity:'box_quantity',purchasePrice:'purchase_price',manuallyAdded:'manually_added',manuallyDefinedUnit:'manually_defined_unit',taxNumber:'tax_number',supplierId:'supplier_id',supplierName:'supplier_name',invoiceNumber:'invoice_number',receiptDate:'receipt_date',employeeId:'employee_id',employeeName:'employee_name',lineCount:'total_lines',totalUnits:'total_units',receiptId:'receipt_id',quantity:'entered_quantity',conversion:'conversion_quantity',userId:'user_id',userName:'user_name',entityType:'entity_type',entityId:'entity_id',oldValue:'old_value',newValue:'new_value',createdAt:'created_at',updatedAt:'updated_at',deletedAt:'deleted_at'};
+ const tables={suppliers:'suppliers',products:'products',receipts:'receipts',receiptLines:'receipt_lines',shortageReports:'shortage_reports',auditLogs:'audit_logs'};
+ const fields={productCode:'product_code',productName:'product_name',caseQuantity:'case_quantity',boxQuantity:'box_quantity',purchasePrice:'purchase_price',manuallyAdded:'manually_added',manuallyDefinedUnit:'manually_defined_unit',taxNumber:'tax_number',supplierId:'supplier_id',supplierName:'supplier_name',invoiceNumber:'invoice_number',receiptDate:'receipt_date',employeeId:'employee_id',employeeName:'employee_name',lineCount:'total_lines',totalUnits:'total_units',receiptId:'receipt_id',quantity:'entered_quantity',conversion:'conversion_quantity',missingQuantity:'missing_quantity',reportedBy:'reported_by',reporterName:'reporter_name',adminNote:'admin_note',resolvedAt:'resolved_at',resolvedBy:'resolved_by',userId:'user_id',userName:'user_name',entityType:'entity_type',entityId:'entity_id',oldValue:'old_value',newValue:'new_value',createdAt:'created_at',updatedAt:'updated_at',deletedAt:'deleted_at'};
  let actor=null,flushing=null,serial=Promise.resolve(),order=Date.now()*1000;const pendingReads=new Map();
  const lock=fn=>{const p=serial.then(fn);serial=p.catch(()=>{});return p;};
  const keyOf=(name,row)=>name==='products'?row.barcode:row.id;
@@ -15,6 +15,7 @@ const KDB=(()=>{
   out.id=row.local_id;out._cloudId=row.id;out._base=row.updated_at;out._synced=true;out._pending=false;
   if(name==='receipts'){out.status=row.status.toUpperCase();out.receiptDate=row.receipt_date.slice(0,10);if(row.supplier_id){const s=(await KCache.all('suppliers')).find(s=>s._cloudId===row.supplier_id);out.supplierId=s?.id||row.supplier_id;}}
   if(name==='receiptLines'){out.unit=row.entered_unit;const r=(await KCache.all('receipts')).find(r=>r._cloudId===row.receipt_id);out.receiptId=r?.id||row.receipt_id;}
+  if(name==='shortageReports'){const r=(await KCache.all('receipts')).find(r=>r._cloudId===row.receipt_id);out.receiptId=r?.id||row.receipt_id;}
   return out;
  }
  async function refresh(name){
