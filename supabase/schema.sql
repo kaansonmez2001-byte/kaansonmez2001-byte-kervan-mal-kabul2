@@ -57,7 +57,7 @@ declare r text:=private.staff_role(); parent public.receipts; begin
  end if;
  if TG_TABLE_NAME='receipts' then
   if TG_OP='INSERT' and r<>'ADMIN' then new.employee_id:=auth.uid(); select name into new.employee_name from public.staff where id=auth.uid(); end if;
-  if TG_OP='UPDATE' and r<>'ADMIN' and (old.employee_id<>auth.uid() or old.status<>'draft' or new.employee_id is distinct from old.employee_id or new.employee_name is distinct from old.employee_name or new.deleted_at is not null) then raise exception 'Bu mal kabul değiştirilemez' using errcode='42501'; end if;
+  if TG_OP='UPDATE' and r<>'ADMIN' and (old.employee_id<>auth.uid() or old.status='cancelled' or (old.status='completed' and new.status<>'completed') or new.employee_id is distinct from old.employee_id or new.employee_name is distinct from old.employee_name or new.deleted_at is not null) then raise exception 'Yalnızca kendi mal kabul kaydınızı düzenleyebilirsiniz' using errcode='42501'; end if;
   if new.status='completed' then
    select count(*),coalesce(sum(total_units),0) into new.total_lines,new.total_units from public.receipt_lines where receipt_id=new.id and deleted_at is null;
    if new.total_lines=0 then raise exception 'Boş mal kabul tamamlanamaz'; end if;
@@ -66,7 +66,7 @@ declare r text:=private.staff_role(); parent public.receipts; begin
  if TG_TABLE_NAME='receipt_lines' then
   select * into parent from public.receipts where id=new.receipt_id for update;
   if not found or parent.deleted_at is not null then raise exception 'Mal kabul bulunamadı'; end if;
-  if r<>'ADMIN' and (parent.employee_id<>auth.uid() or parent.status<>'draft') then raise exception 'Yalnızca kendi taslağınız değiştirilebilir' using errcode='42501'; end if;
+  if r<>'ADMIN' and (parent.employee_id<>auth.uid() or parent.status not in ('draft','completed')) then raise exception 'Yalnızca kendi mal kabul satırlarınızı düzenleyebilirsiniz' using errcode='42501'; end if;
   if TG_OP='UPDATE' and new.receipt_id<>old.receipt_id then raise exception 'Satır başka belgeye taşınamaz'; end if;
   if new.entered_quantity<=0 or new.conversion_quantity<=0 then raise exception 'Miktar ve çevrim pozitif olmalı'; end if;
   if new.entered_unit='ADET' then new.conversion_quantity:=1; end if;
