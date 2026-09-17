@@ -18,10 +18,12 @@ const KStaff = (() => {
   return client ||= window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'kervan-central-auth-v1'}});
  }
  async function current(){
-  const {data:{session}}=await connect().auth.getSession();if(!session)return null;
-  if(!navigator.onLine){const u=cachedUser();return u?.id===session.user.id&&u.active!==false?u:null;}
-  const {data,error}=await connect().from('staff').select('*').eq('id',session.user.id).maybeSingle();
-  if(error)throw new Error('Merkezi yetki doğrulanamadı.');
+  const cached=cachedUser();let authSession=null;
+  try{const {data:{session},error}=await deadline(connect().auth.getSession(),10000);if(error)throw error;authSession=session;}catch{return cached?.active!==false&&!cached?.deleted_at?cached:null;}
+  if(!authSession)return cached?.active!==false&&!cached?.deleted_at?cached:null;
+  if(!navigator.onLine)return cached?.id===authSession.user.id&&cached.active!==false&&!cached.deleted_at?cached:null;
+  const {data,error}=await deadline(connect().from('staff').select('*').eq('id',authSession.user.id).maybeSingle(),10000);
+  if(error)return cached?.id===authSession.user.id&&cached.active!==false&&!cached.deleted_at?cached:null;
   if(!data?.active||data.deleted_at){await logout();return null;}
   const user=map(data);cacheUser(user);return user;
  }

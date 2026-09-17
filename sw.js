@@ -1,5 +1,5 @@
-const CACHE='kervan-mal-kabul-v18-central-role-login';
-const LOCAL=['/','/index.html','/assets/app.css','/js/cache.js?v=18','/js/db.js?v=18','/js/staff.js?v=18','/js/sync.js?v=18','/js/app.js?v=18','/manifest.webmanifest'];
+const CACHE='kervan-mal-kabul-v19-persistent-session';
+const LOCAL=['/','/index.html','/assets/app.css','/js/cache.js?v=19','/js/db.js?v=19','/js/staff.js?v=19','/js/sync.js?v=19','/js/app.js?v=19','/manifest.webmanifest'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(LOCAL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
