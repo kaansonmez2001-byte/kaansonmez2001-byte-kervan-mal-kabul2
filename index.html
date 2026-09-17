@@ -44,6 +44,7 @@
         <button data-view="import" class="nav-btn admin-only">⇧ <span>Ürün Listesi Yükle</span></button>
         <button data-view="unknown" class="nav-btn admin-only">? <span>Tanımsız Ürünler</span></button>
         <button data-view="suppliers" class="nav-btn admin-only">▣ <span>Tedarikçiler</span></button>
+        <button data-view="shortages" class="nav-btn admin-only">⚠ <span>Eksik Ürün Bildirimleri</span><b id="shortageNavBadge" class="nav-count hidden">0</b></button>
         <button data-view="reports" class="nav-btn admin-only">▥ <span>Raporlar</span></button>
         <button data-view="users" class="nav-btn admin-only">♙ <span>Personel</span></button>
         <button data-view="audit" class="nav-btn admin-only">◷ <span>İşlem Kayıtları</span></button>
@@ -105,6 +106,8 @@
 
         <section id="view-suppliers" class="view admin-only-view"><div class="two-col"><div class="section-card"><h3>Tedarikçi Ekle</h3><label>Firma Adı<input id="supplierName" placeholder="Firma adı"></label><label>Telefon<input id="supplierPhone" placeholder="05xx..."></label><label>Vergi No<input id="supplierTax" placeholder="Opsiyonel"></label><label>Not<textarea id="supplierNote" rows="3"></textarea></label><button id="addSupplierBtn" class="btn btn-orange btn-block">Tedarikçiyi Kaydet</button></div><div class="panel"><div class="panel-head"><b>Tedarikçiler</b></div><div id="supplierTable" class="table-wrap"></div></div></div></section>
 
+        <section id="view-shortages" class="view admin-only-view"><div class="panel"><div class="panel-head"><div><b>Eksik Ürün Bildirimleri</b><small>Tedarikçilerden eksik gelen ürünlerin merkezi takibi</small></div><select id="shortageStatusFilter"><option value="open">Açık Bildirimler</option><option value="all">Tümü</option><option value="resolved">Çözülenler</option></select></div><div id="shortageTable" class="table-wrap"></div></div></section>
+
         <section id="view-reports" class="view admin-only-view"><div class="metric-grid"><div class="metric"><span>Toplam Mal Kabul</span><strong id="reportReceiptCount">0</strong></div><div class="metric"><span>Toplam Adet</span><strong id="reportUnitCount">0</strong></div><div class="metric"><span>Tanımsız Ürün</span><strong id="reportUnknownCount">0</strong></div><div class="metric"><span>Kayıtlı Ürün</span><strong id="reportProductCount">0</strong></div></div><div class="panel"><div class="panel-head"><b>Tedarikçi Bazlı Mal Kabul</b><button id="exportReportBtn" class="btn btn-plain">Excel'e Aktar</button></div><div id="supplierReport" class="table-wrap"></div></div></section>
 
         <section id="view-users" class="view admin-only-view"><div class="two-col"><div class="section-card"><h3>Personel Ekle</h3><label>Ad Soyad<input id="userName"></label><label>Kullanıcı Adı<input id="userUsername"></label><label>PIN<input id="userPin" type="password" inputmode="numeric" value="1453"></label><label>Rol<select id="userRole"><option value="PERSONNEL">Personel</option><option value="ADMIN">Yönetici</option></select></label><button id="addUserBtn" class="btn btn-orange btn-block">Kullanıcı Oluştur</button></div><div class="panel"><div class="panel-head"><b>Kullanıcılar</b></div><div id="userTable" class="table-wrap"></div></div></div></section>
@@ -120,18 +123,20 @@
 
   <dialog id="unknownDialog" class="modal"><div class="modal-body"><button class="modal-close" data-close="unknownDialog">×</button><span class="eyebrow danger">ÜRÜN BULUNAMADI</span><h3>Yeni Ürün Tanımla</h3><div class="danger-strip">Barkod: <b id="unknownBarcode"></b></div><div class="form-grid"><label class="full">Ürün Adı<input id="unknownName"></label><label>Ürün Kodu<input id="unknownCode"></label><label>Birim<select id="unknownUnit"><option>ADET</option><option>KOLI</option><option>KUTU</option></select></label><label id="unknownConvWrap" class="full hidden">Koli / Kutu İçi<input id="unknownConv" type="number" min="1" step="1"></label><label class="full">Not<input id="unknownNote"></label></div><button id="saveUnknownBtn" class="btn btn-orange btn-block">Ürünü Kaydet ve Mal Kabule Ekle</button></div></dialog>
 
-  <dialog id="receiptDialog" class="modal wide-modal"><div class="modal-body"><button class="modal-close" data-close="receiptDialog">×</button><span class="eyebrow">MAL KABUL DETAYI</span><h3 id="detailTitle">Belge</h3><div id="detailMeta" class="info-strip"></div><div id="detailLines" class="table-wrap"></div><div class="action-row"><button id="editReceiptBtn" class="btn btn-orange">Kaydı Düzenle</button><button id="detailExportBtn" class="btn btn-navy">Excel'e Aktar</button></div></div></dialog>
+  <dialog id="receiptDialog" class="modal wide-modal"><div class="modal-body"><button class="modal-close" data-close="receiptDialog">×</button><span class="eyebrow">MAL KABUL DETAYI</span><h3 id="detailTitle">Belge</h3><div id="detailMeta" class="info-strip"></div><div id="detailLines" class="table-wrap"></div><div class="action-row"><button id="editReceiptBtn" class="btn btn-orange">Kaydı Düzenle</button><button id="reportShortageBtn" class="btn btn-danger">Eksik Ürün Bildir</button><button id="detailExportBtn" class="btn btn-navy">Excel'e Aktar</button></div></div></dialog>
 
   <dialog id="editReceiptDialog" class="modal wide-modal"><div class="modal-body"><button class="modal-close" data-close="editReceiptDialog">×</button><span class="eyebrow">MAL KABULÜ DÜZENLE</span><h3>Belge Bilgileri</h3><div class="form-grid"><label class="full">Tedarikçi<select id="editReceiptSupplier"></select></label><label>Fatura / İrsaliye No<input id="editReceiptInvoice"></label><label>Tarih<input id="editReceiptDate" type="date"></label><label class="full">Açıklama<textarea id="editReceiptDescription" rows="3"></textarea></label></div><div class="edit-lines-title"><h3>Ürün ve Miktarlar</h3><small>Ürün, barkod, miktar, birim ve koli/kutu içini değiştirebilirsiniz.</small></div><div id="editReceiptLines" class="edit-receipt-lines"></div><button id="saveReceiptEditBtn" class="btn btn-orange btn-block big">Tüm Değişiklikleri Kaydet</button></div></dialog>
+
+  <dialog id="shortageDialog" class="modal"><div class="modal-body"><button class="modal-close" data-close="shortageDialog">×</button><span class="eyebrow danger">EKSİK ÜRÜN</span><h3>Eksik Ürün Bildir</h3><div id="shortageReceiptMeta" class="info-strip"></div><p class="muted">Barkod gerekmez. Eksik gelen ürünün adını ve adedini yazın.</p><div class="form-grid"><label class="full">Ürün Adı<input id="shortageProductName" autocomplete="off" placeholder="Eksik ürünün adı"></label><label class="full">Eksik Adet<input id="shortageQuantity" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0"></label></div><button id="saveShortageBtn" class="btn btn-danger btn-block big">Bildirimi Gönder</button></div></dialog>
 
   <div id="toast" class="toast"></div>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.3"></script>
-  <script src="/js/cache.js?v=21"></script>
-  <script src="/js/db.js?v=21"></script>
-  <script src="/js/staff.js?v=21"></script>
-  <script src="/js/sync.js?v=21"></script>
-  <script src="/js/app.js?v=21"></script>
+  <script src="/js/cache.js?v=22"></script>
+  <script src="/js/db.js?v=22"></script>
+  <script src="/js/staff.js?v=22"></script>
+  <script src="/js/sync.js?v=22"></script>
+  <script src="/js/app.js?v=22"></script>
 </body>
 </html>
