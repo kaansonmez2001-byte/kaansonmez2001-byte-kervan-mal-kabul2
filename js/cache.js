@@ -1,4 +1,4 @@
-const KCache=(()=>{const NAME='kervan-mal-kabul-web';const VERSION=6;let p;
+const KCache=(()=>{const NAME='kervan-mal-kabul-web';const VERSION=7;let p;
 const req=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 function open(){if(p)return p;p=new Promise((res,rej)=>{const r=indexedDB.open(NAME,VERSION);r.onupgradeneeded=()=>{const db=r.result;
 function mk(n,key='id'){if(!db.objectStoreNames.contains(n))return db.createObjectStore(n,{keyPath:key});return r.transaction.objectStore(n)}
@@ -9,6 +9,7 @@ s=mk('suppliers');if(!s.indexNames.contains('name'))s.createIndex('name','name')
 s=mk('users');if(!s.indexNames.contains('username'))s.createIndex('username','username',{unique:true});
 s=mk('auditLogs');if(!s.indexNames.contains('createdAt'))s.createIndex('createdAt','createdAt');
 s=mk('shortageReports');if(!s.indexNames.contains('receiptId'))s.createIndex('receiptId','receiptId');if(!s.indexNames.contains('status'))s.createIndex('status','status');
+for(const name of ['customers','accounts','financialTransactions','invoices','invoiceLines','stockMovements','stockCounts','stockCountLines'])mk(name);
 mk('settings','key');mk('syncQueue');mk('conflicts');};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return p}
 async function st(n,m='readonly'){const db=await open();return db.transaction(n,m).objectStore(n)}
 async function get(n,k){return req((await st(n)).get(k))}async function all(n){return req((await st(n)).getAll())}async function put(n,v){return req((await st(n,'readwrite')).put(v))}async function add(n,v){return req((await st(n,'readwrite')).add(v))}async function del(n,k){return req((await st(n,'readwrite')).delete(k))}
