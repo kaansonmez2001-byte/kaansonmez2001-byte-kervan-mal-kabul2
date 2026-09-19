@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#13263f">
-  <meta name="description" content="Kervan Market Mal Kabul ve Fatura Kabul Sistemi">
+  <meta name="description" content="Kervan Market Mal Kabul, Stok ve Ön Muhasebe Sistemi">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/assets/app.css">
-  <title>Kervan Market • Mal Kabul</title>
+  <title>Kervan Market • Operasyon ve Ön Muhasebe</title>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
     <div class="login-card role-login-card">
       <div class="brand-logo">K</div>
-      <h1>Kervan Market</h1><p>Mal Kabul Sistemi</p>
+      <h1>Kervan Market</h1><p>Operasyon ve Ön Muhasebe</p>
 
       <div class="login-role-selector" aria-label="Giriş türü">
         <button id="personnelLoginMode" type="button" class="login-role-btn active" data-login-role="PERSONNEL">
@@ -36,15 +36,21 @@
 
   <div id="appShell" class="shell hidden">
     <aside class="sidebar">
-      <div class="side-brand"><div class="brand-logo small-logo">K</div><div><b>Kervan Market</b><span>Mal Kabul Sistemi</span></div></div>
+      <div class="side-brand"><div class="brand-logo small-logo">K</div><div><b>Kervan Market</b><span>Operasyon ve Ön Muhasebe</span></div></div>
       <nav id="mainNav">
         <button data-view="dashboard" class="nav-btn active">⌂ <span>Ana Sayfa</span></button>
         <button data-view="newReceipt" class="nav-btn">⊕ <span>Yeni Mal Kabul</span></button>
         <button data-view="history" class="nav-btn">▤ <span>Mal Kabul Geçmişi</span></button>
+        <button data-view="stock" class="nav-btn">▦ <span>Stok ve Sayım</span></button>
         <button data-view="import" class="nav-btn admin-only">⇧ <span>Ürün Listesi Yükle</span></button>
         <button data-view="unknown" class="nav-btn admin-only">? <span>Tanımsız Ürünler</span></button>
         <button data-view="suppliers" class="nav-btn admin-only">▣ <span>Tedarikçiler</span></button>
         <button data-view="shortages" class="nav-btn admin-only">⚠ <span>Eksik Ürün Bildirimleri</span><b id="shortageNavBadge" class="nav-count hidden">0</b></button>
+        <button data-view="customers" class="nav-btn admin-only">♧ <span>Cari Hesaplar</span></button>
+        <button data-view="invoices" class="nav-btn admin-only">▧ <span>Alış / Satış Faturaları</span></button>
+        <button data-view="finance" class="nav-btn admin-only">₺ <span>Kasa ve Banka</span></button>
+        <button data-view="accountingReports" class="nav-btn admin-only">◫ <span>Muhasebe Raporları</span></button>
+        <button data-view="akinsoft" class="nav-btn admin-only">⇄ <span>AKINSOFT Aktarım</span></button>
         <button data-view="reports" class="nav-btn admin-only">▥ <span>Raporlar</span></button>
         <button data-view="users" class="nav-btn admin-only">♙ <span>Personel</span></button>
         <button data-view="audit" class="nav-btn admin-only">◷ <span>İşlem Kayıtları</span></button>
@@ -97,6 +103,18 @@
           </div>
         </section>
 
+        <section id="view-stock" class="view"><div class="panel"><div class="panel-head"><div><b>Stok Durumu</b><small>Merkezi stok, fiyat ve sayım işlemleri</small></div><input id="stockSearch" type="search" placeholder="Ürün veya barkod ara"></div><div id="stockTable" class="table-wrap"></div></div><div class="section-card accounting-gap"><h3>Yeni Sayım Gir</h3><p class="muted">Personel sayımı gönderir; stok ancak yönetici onaylayınca değişir.</p><div class="form-grid"><label>Barkod<input id="countBarcode" inputmode="numeric"></label><label>Sayılan Adet<input id="countQuantity" type="number" min="0" step="0.01"></label><label class="full">Not<input id="countNote" placeholder="Raf/depo sayımı"></label></div><button id="saveCountBtn" class="btn btn-orange">Sayımı Onaya Gönder</button></div><div class="panel accounting-gap"><div class="panel-head"><b>Sayım Geçmişi</b></div><div id="countTable" class="table-wrap"></div></div></section>
+
+        <section id="view-customers" class="view admin-only-view"><div class="two-col"><div class="section-card"><h3>Cari Kart Aç</h3><div class="form-grid one-col"><label>Tür<select id="partyType"><option value="customer">Müşteri</option><option value="supplier">Tedarikçi</option></select></label><label>Unvan<input id="partyName"></label><label>Telefon<input id="partyPhone"></label><label>Vergi No<input id="partyTax"></label><label>Açılış Bakiyesi<input id="partyBalance" type="number" step="0.01" value="0"></label></div><button id="savePartyBtn" class="btn btn-orange btn-block">Cari Kartı Kaydet</button></div><div class="panel"><div class="panel-head"><div><b>Cari Hesaplar</b><small>Müşteri ve tedarikçi kartları</small></div></div><div id="partyTable" class="table-wrap"></div></div></div></section>
+
+        <section id="view-invoices" class="view admin-only-view"><div class="section-card"><h3>Fatura Kaydı</h3><div class="form-grid"><label>Fatura Türü<select id="invoiceType"><option value="purchase">Alış Faturası</option><option value="sale">Satış Faturası</option></select></label><label>Belge No<input id="accountingInvoiceNo"></label><label>Tarih<input id="accountingInvoiceDate" type="date"></label><label>Cari<select id="invoiceParty"></select></label><label>Ürün<select id="invoiceProduct"></select></label><label>Miktar<input id="invoiceQuantity" type="number" min="0.01" step="0.01" value="1"></label><label>Birim Fiyat<input id="invoiceUnitPrice" type="number" min="0" step="0.01"></label><label>KDV %<input id="invoiceVat" type="number" min="0" step="1" value="1"></label><label class="full">Not<input id="invoiceNote"></label></div><button id="saveInvoiceBtn" class="btn btn-orange">Faturayı Kaydet ve Stoka İşle</button></div><div class="panel accounting-gap"><div class="panel-head"><b>Faturalar</b></div><div id="invoiceTable" class="table-wrap"></div></div></section>
+
+        <section id="view-finance" class="view admin-only-view"><div class="two-col"><div><div class="section-card"><h3>Kasa / Banka Hesabı</h3><label>Hesap Adı<input id="accountName"></label><label>Tür<select id="accountType"><option value="cash">Kasa</option><option value="bank">Banka</option></select></label><label>Açılış Bakiyesi<input id="accountOpening" type="number" step="0.01" value="0"></label><button id="saveAccountBtn" class="btn btn-navy btn-block">Hesabı Kaydet</button></div><div class="section-card accounting-gap"><h3>Para Hareketi</h3><label>Hesap<select id="transactionAccount"></select></label><label>İşlem<select id="transactionType"><option value="income">Gelir</option><option value="expense">Gider</option><option value="collection">Tahsilat</option><option value="payment">Ödeme</option></select></label><label>Tutar<input id="transactionAmount" type="number" min="0.01" step="0.01"></label><label>Açıklama<input id="transactionDescription"></label><button id="saveTransactionBtn" class="btn btn-orange btn-block">Hareketi Kaydet</button></div></div><div><div id="accountCards" class="metric-grid"></div><div class="panel"><div class="panel-head"><b>Kasa / Banka Hareketleri</b></div><div id="transactionTable" class="table-wrap"></div></div></div></div></section>
+
+        <section id="view-accountingReports" class="view admin-only-view"><div id="accountingMetrics" class="metric-grid"></div><div class="two-col"><div class="panel"><div class="panel-head"><b>Cari Özet</b></div><div id="accountingPartyReport" class="table-wrap"></div></div><div class="panel"><div class="panel-head"><b>Stok Değeri</b></div><div id="stockValueReport" class="table-wrap"></div></div></div></section>
+
+        <section id="view-akinsoft" class="view admin-only-view"><div class="section-card"><h3>AKINSOFT Veri Aktarımı</h3><p class="muted">Excel/CSV dosyasını seçin. Ürün, müşteri, tedarikçi veya açılış stokları merkezi sisteme aktarılır.</p><div class="form-grid"><label>Veri Türü<select id="akinsoftImportType"><option value="products">Ürün / Stok Kartları</option><option value="customers">Müşteri Carileri</option><option value="suppliers">Tedarikçi Carileri</option><option value="opening_stock">Açılış Stokları</option></select></label><label>Dosya<input id="akinsoftFile" type="file" accept=".xlsx,.xls,.csv"></label></div><button id="runAkinsoftImportBtn" class="btn btn-orange">Dosyayı Kontrol Et ve Aktar</button><div id="akinsoftImportResult" class="accounting-gap"></div></div></section>
+
         <section id="view-import" class="view admin-only-view">
           <div class="section-card"><h3>AKINSOFT Ürün Listesi Yükle</h3><p class="muted">Excel veya CSV dosyasını seçin. Mevcut manuel koli/kutu tanımları boş hücrelerle silinmez.</p><input id="productFile" type="file" accept=".xlsx,.xls,.csv" hidden><div id="dropzone" class="dropzone"><div class="drop-icon">⇧</div><b>Excel / CSV dosyasını buraya bırakın</b><span>veya</span><button id="chooseFileBtn" class="btn btn-navy">Dosya Seç</button><small id="chosenFileName">Henüz dosya seçilmedi</small></div><div id="importStatus"></div><button id="runImportBtn" class="btn btn-orange btn-block hidden">Ürünleri İçe Aktar</button></div>
           <div class="panel"><div class="panel-head"><b>Ürün Listesi</b><span id="productListCount" class="muted"></span></div><div class="filters"><input id="productSearch" placeholder="Ürün adı / barkod / kod ara"><button id="productSearchBtn" class="btn btn-navy">Ara</button></div><div id="productTable" class="table-wrap"></div></div>
@@ -133,10 +151,11 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.3"></script>
-  <script src="/js/cache.js?v=22"></script>
-  <script src="/js/db.js?v=22"></script>
-  <script src="/js/staff.js?v=22"></script>
-  <script src="/js/sync.js?v=22"></script>
-  <script src="/js/app.js?v=22"></script>
+  <script src="/js/cache.js?v=23"></script>
+  <script src="/js/db.js?v=23"></script>
+  <script src="/js/staff.js?v=23"></script>
+  <script src="/js/sync.js?v=23"></script>
+  <script src="/js/accounting.js?v=23"></script>
+  <script src="/js/app.js?v=23"></script>
 </body>
 </html>
