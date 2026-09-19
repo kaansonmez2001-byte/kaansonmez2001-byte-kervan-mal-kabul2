@@ -28,9 +28,9 @@ const KStaff = (() => {
   const user=map(data);cacheUser(user);return user;
  }
  async function login(username,pin){
-  const c=connect();const {data:authData,error}=await deadline(c.auth.signInWithPassword({email:emailFor(username),password:'Kervan-PIN:'+pin}));
+  const c=connect();const {data:authData,error}=await deadline(c.auth.signInWithPassword({email:emailFor(username),password:'Kervan-PIN:'+pin}),30000);
   if(error)throw new Error(error.status===429?'Çok fazla deneme yapıldı. Biraz sonra tekrar deneyin.':'Kullanıcı adı veya PIN hatalı; bağlantınızı da kontrol edin.');
-  const {data,error:profileError}=await deadline(c.from('staff').select('*').eq('id',authData.user.id).maybeSingle());
+  const {data,error:profileError}=await deadline(c.from('staff').select('*').eq('id',authData.user.id).maybeSingle(),30000);
   if(profileError)throw new Error('Merkezi yetki doğrulanamadı. Lütfen tekrar deneyin.');
   if(!data?.active||data.deleted_at){await deadline(c.auth.signOut({scope:'local'}),5000).catch(()=>{});throw new Error('Bu hesap pasif veya kullanım dışı.');}
   const user=map(data);cacheUser(user);
