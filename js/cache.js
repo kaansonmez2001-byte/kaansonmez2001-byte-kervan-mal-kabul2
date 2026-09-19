@@ -10,7 +10,7 @@ s=mk('users');if(!s.indexNames.contains('username'))s.createIndex('username','us
 s=mk('auditLogs');if(!s.indexNames.contains('createdAt'))s.createIndex('createdAt','createdAt');
 s=mk('shortageReports');if(!s.indexNames.contains('receiptId'))s.createIndex('receiptId','receiptId');if(!s.indexNames.contains('status'))s.createIndex('status','status');
 for(const name of ['customers','accounts','financialTransactions','invoices','invoiceLines','stockMovements','stockCounts','stockCountLines'])mk(name);
-mk('settings','key');mk('syncQueue');mk('conflicts');};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return p}
+mk('settings','key');mk('syncQueue');mk('conflicts');};r.onsuccess=()=>{const db=r.result;db.onversionchange=()=>db.close();res(db)};r.onblocked=()=>{p=null;rej(new Error('Uygulamanın başka açık sekmesini kapatıp sayfayı yenileyin.'))};r.onerror=()=>rej(r.error)});return p}
 async function st(n,m='readonly'){const db=await open();return db.transaction(n,m).objectStore(n)}
 async function get(n,k){return req((await st(n)).get(k))}async function all(n){return req((await st(n)).getAll())}async function put(n,v){return req((await st(n,'readwrite')).put(v))}async function add(n,v){return req((await st(n,'readwrite')).add(v))}async function del(n,k){return req((await st(n,'readwrite')).delete(k))}
 async function clear(n){return req((await st(n,'readwrite')).clear())}async function indexAll(n,i,k){return req((await st(n)).index(i).getAll(k))}
