@@ -34,5 +34,5 @@ async function push(user){
  }
  if(user.role==='ADMIN')await pushTable('audit_logs',logs,l=>({local_id:l.id,user_id:safe(l.userId),user_name:l.userName,action:l.action,entity_type:l.entityType,entity_id:safe(l.entityId),description:l.description,old_value:safe(l.oldValue),new_value:safe(l.newValue),created_at:l.createdAt}));
 }
-async function sync(user,quiet=false){await connect();await pull(user);await push(user);await pull(user);await KDB.setSetting('lastSyncAt',new Date().toISOString());if(!quiet)await KDB.log(user,'SYNC','system','cloud','Bulut senkronizasyonu tamamlandı.');return true}
+async function sync(user,quiet=false){await connect();await KDB.sync();await KDB.setSetting('lastSyncAt',new Date().toISOString());if(!quiet)await KDB.log(user,'SYNC','system','cloud','Bulut senkronizasyonu tamamlandı.');return true}
 return{sync,connect,pull}})();
